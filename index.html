@@ -1,0 +1,147 @@
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" />
+    <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
+    <style type="text/css">
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #network {
+          height: 75%;
+        }
+        #timeline {
+          height: 25%;
+          overflow: hidden;
+        }
+    </style>
+  </head>
+  <body>
+    <div id="network"></div>
+    <div id="timeline"></div>
+    <script>
+      var params = new URLSearchParams(window.location.search);
+      var course = "his207";
+      if (params.has("course")) {
+        course = params.get("course");
+      }
+      $.getJSON(course + " wiki.json", function(versions) {
+        for (var i in versions) {
+          var v = versions[i];
+          v.start = new Date(v.created_on.slice(0, -4));
+          v.type = "point";
+        }
+        console.log(versions);
+
+        // create a network
+        var container = document.getElementById('network');
+        var nodes = new vis.DataSet();
+        var edges = new vis.DataSet();
+        var data = {
+          nodes: nodes,
+          edges: edges
+        }
+        var options = {
+          edges: {
+            arrows: 'to'
+          },
+          physics: {
+            maxVelocity: 10
+          }
+        };
+        var network = new vis.Network(container, data, options);
+
+        // DOM element where the Timeline will be attached
+        var container = document.getElementById('timeline');
+
+        // Configuration for the Timeline
+        var options = {
+          maxHeight: "100%"
+        };
+
+        // Create a Timeline
+        var timeline = new vis.Timeline(container, versions, options);
+        timeline.addCustomTime(timeline.getItemRange().min);
+
+        function updateNetwork() {
+          var dt = timeline.getCustomTime();
+          var current_state = {}
+          for (var i in versions) {
+            var v = versions[i];
+            if (v.start < dt) {
+              if (!current_state[v.guid] || current_state[v.guid].start < v.start) {
+                current_state[v.guid] = v;
+              }
+            }
+          }
+          var nids = nodes.getIds();
+          for (var i in nids) {
+            var id = nids[i];
+            if (!current_state[id]) {
+              // page deleted
+              nodes.remove(id);
+            }
+          }
+          var current_edges = {};
+          for (var guid in current_state) {
+            var v = current_state[guid];
+            if (nids.indexOf(v.guid) == -1) {
+              // page created
+              nodes.add({id: v.guid, label: v.title});
+            } else {
+              // page updated
+              nodes.update({id: v.guid, label: v.title});
+            }
+            $.extend(current_edges, v.links);
+          }
+          var eids = edges.getIds();
+          for (var i in eids) {
+            var id = eids[i];
+            if (!current_edges[id]) {
+              // link removed
+              edges.remove(id);
+            }
+          }
+          for (var id in current_edges) {
+            var e = current_edges[id];
+            if (eids.indexOf(id) == -1) {
+              // link added
+              edges.add(e);
+            } else {
+              // additional links possibly added
+              edges.update(e);
+            }
+          }
+        }
+
+        var interval = 100; // ms
+        setInterval(function() {
+          var dt = timeline.getCustomTime();
+          if (dt > timeline.getItemRange().max) {
+            // loop back to the start
+            timeline.setCustomTime(timeline.getItemRange().min);
+          } else {
+            dt.setHours(dt.getHours() + 1);
+            timeline.setCustomTime(dt);
+          }
+          updateNetwork();
+        }, interval);
+
+        timeline.on('timechanged', function(id, time, event) {
+          // manually dragged
+          updateNetwork();
+        });
+
+        $("#timeline").resizable({
+          handles: "n",
+        });
+      });
+    </script>
+  </body>
+</html>
