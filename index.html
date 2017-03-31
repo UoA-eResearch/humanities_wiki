@@ -20,11 +20,17 @@
           height: 25%;
           overflow: hidden;
         }
+        #config {
+          position: absolute;
+          top: 0;
+          right: -200;
+        }
     </style>
   </head>
   <body>
     <div id="network"></div>
     <div id="timeline"></div>
+    <div id="config"></div>
     <script>
       var params = new URLSearchParams(window.location.search);
       var course = "his207";
@@ -57,7 +63,8 @@
         }
         var options = {
           edges: {
-            arrows: 'to'
+            arrows: 'to',
+            smooth: false
           },
           nodes: {
             scaling: {
@@ -68,6 +75,19 @@
           },
           physics: {
             maxVelocity: 10
+          },
+          configure: {
+            enabled: true,
+            filter:function (option, path) {
+              if (path.indexOf('physics') !== -1) {
+                return true;
+              }
+              if (path.indexOf('smooth') !== -1 || option === 'smooth') {
+                return true;
+              }
+              return false;
+            },
+            container: document.getElementById('config')
           }
         };
         var network = new vis.Network(container, data, options);
