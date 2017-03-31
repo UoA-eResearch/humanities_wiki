@@ -18,10 +18,10 @@ for filename in files:
       for version in page.find_all("version"):
         name = version.find("name").string
         dt = version.find("createdon").string
-        ct = version.find("contenttext").string
+        ct = version.find("contenttext").string or ""
         if ct:
-          ct = BeautifulSoup(ct)
-          for link in ct.find_all("a", href=True):
+          content_soup = BeautifulSoup(ct)
+          for link in content_soup.find_all("a", href=True):
             href = link['href']
             index = href.find("page_guid=")
             if index > 0:
@@ -31,6 +31,6 @@ for filename in files:
                 links[pair_id] = {"id": pair_id, "to": linked_guid, "from": guid, "width": 0}
                 links[pair_id]['width'] += 1
                 total_links += 1
-        versions.append({"guid": guid, "links": links, "total_links": total_links, "created_on": dt, "title": name});
+        versions.append({"guid": guid, "links": links, "total_links": total_links, "created_on": dt, "title": name, "length": len(ct)});
   with open(filename.replace("xml", "json"), "w") as f:
     json.dump(versions, f)

@@ -31,6 +31,14 @@
       if (params.has("course")) {
         course = params.get("course");
       }
+      var scheme = ['#fff7ec','#fee8c8','#fdd49e','#fdbb84','#fc8d59','#ef6548','#d7301f'];
+      function get_color_for_val(val) {
+        val = Math.floor(val);
+        if (val >= scheme.length) {
+          return scheme[scheme.length - 1];
+        }
+        return scheme[val];
+      }
       $.getJSON(course + " wiki.json", function(versions) {
         for (var i in versions) {
           var v = versions[i];
@@ -50,6 +58,13 @@
         var options = {
           edges: {
             arrows: 'to'
+          },
+          nodes: {
+            scaling: {
+              label: {
+                enabled: true
+              }
+            }
           },
           physics: {
             maxVelocity: 10
@@ -93,10 +108,10 @@
             var v = current_state[guid];
             if (nids.indexOf(v.guid) == -1) {
               // page created
-              nodes.add({id: v.guid, label: v.title});
+              nodes.add({id: v.guid, label: v.title, value: v.length, color: get_color_for_val(v.total_links)});
             } else {
               // page updated
-              nodes.update({id: v.guid, label: v.title});
+              nodes.update({id: v.guid, label: v.title, value: v.length, color: get_color_for_val(v.total_links)});
             }
             $.extend(current_edges, v.links);
           }
