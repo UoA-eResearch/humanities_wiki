@@ -74,7 +74,12 @@
             }
           },
           physics: {
-            maxVelocity: 10
+            maxVelocity: 10,
+            barnesHut: {
+              gravitationalConstant: -10000,
+              springConstant: 0.001,
+              springLength: 200
+            }
           },
           configure: {
             enabled: true,
